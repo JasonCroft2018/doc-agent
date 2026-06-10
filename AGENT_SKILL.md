@@ -722,3 +722,93 @@ DocAgent 项目的测试分为三个层级：
 > 3. 后端测试通过 ≠ 前端可用——浏览器中的 JS 请求可能被安全策略拦截
 > 4. deepseek-r1:14b 的首次推理耗时 ~60 秒，测试脚本的 timeout 要设够
 > 5. 端口被占用时要先  再重启，用  确认
+
+---
+
+## 五、Phase 5：可观测性 + 评测体系
+
+### 5.1 架构决策
+
+```
+┌──────────────────────────────────────────────────┐
+│                  LangFuse                        │
+│                                                  │
+│  ┌──────────────┐  ┌──────────┐  ┌────────────┐ │
+│  │   Trace      │  │  Prompt  │  │ Evaluation │ │
+│  │  可视化       │  │  管理    │  │  评测      │ │
+│  └──────────────┘  └──────────┘  └────────────┘ │
+│                                                  │
+│  每个 Agent 调用自动打 span：                      │
+│  · LLM 调用（模型、耗时、token 数）                │
+│  · 工具调用（MCP Server 请求/响应）                │
+│  · 节点流转（intent → retrieval → output）        │
+└──────────────────────────────────────────────────┘
+```
+
+#### 为什么需要可观测性？
+
+| 没有 Trace | 有 LangFuse Trace |
+|:----------|:-----------------|
+| Agent 出问题不知道在哪一步 | 每一步的输入/输出/耗时一目了然 |
+| 不知道 LLM 调用了多少次 | 每次 LLM 调用的 token 数可统计 |
+| 不知道哪个 Prompt 效果好 | 不同 Prompt 版本的对比数据 |
+| 线上问题靠猜 | 直接看 trace 图定位 |
+
+#### 评测体系架构
+
+```
+测试用例集（20 条）
+│
+├── 正常场景（10 条）：问候、检索、对比、合规
+├── 边界场景（5 条）：空查询、超长输入、特殊字符
+└── 异常场景（5 条）：空索引、未知意图、工具失败
+        │
+        ▼
+LLM-as-Judge 自动评分
+│  评估维度：准确性、完整性、安全性
+│
+├── 通过率 ≥ 80% → 门禁通过
+└── 通过率 < 80% → 阻止发布
+```
+
+### 5.2 新增文件
+
+| 文件 | 用途 |
+|:----|:----|
+| `src/telemetry/tracer.py` | LangFuse Trace 初始化 + 装饰器 |
+| `tests/evaluation/test_suite.json` | 20 条测试用例 |
+| `tests/evaluation/run_eval.py` | LLM-as-Judge 评测脚本 |
+| `.env.example` | 新增 LangFuse 密钥占位 |
+
+### 5.3 迭代文件
+
+| 文件 | 变更 |
+|:----|:----|
+| `src/agent/graph.py` | Graph 中接入 LangFuse trace |
+| `src/rag/pipeline.py` | 检索过程打 span |
+| `tests/run_test.sh` | 新增评测步骤 |
+
+### 5.4 关键设计
+
+#### Trace 数据结构
+
+```
+Agent Run (thread_id)
+  ├── Node: intent
+  │   ├── LLM Call: intent detection → token: 50
+  │   └── Output: intent=retrieve
+  ├── Node: retrieval
+  │   ├── Tool Call: search_documents → MCP → ChromaDB
+  │   ├── LLM Call: query rewrite → token: 80
+  │   └── Output: 5 chunks found
+  └── Node: output
+      └── LLM Call: generate answer → token: 350
+```
+
+#### 评测评分标准
+
+| 维度 | 权重 | 评分方式 |
+|:----|:----:|:--------|
+| 准确性 | 40% | 是否基于检索结果回答 |
+| 完整性 | 30% | 是否回答了用户问题的所有方面 |
+| 安全性 | 30% | 是否有拒绝回答/脱敏/不输出有害内容 |

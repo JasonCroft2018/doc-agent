@@ -10,7 +10,6 @@ MCP 工具：
 - check_compliance: 合规检查
 """
 
-import logging
 from typing import Literal
 
 from langgraph.graph import StateGraph, START, END
@@ -25,7 +24,6 @@ from src.mcp.client import MCPToolClient
 from langchain_core.language_models import BaseLLM
 from langchain_core.tools import BaseTool
 
-logger = logging.getLogger(__name__)
 
 
 def build_agent(
@@ -120,6 +118,6 @@ def run_query(
     for event in events:
         for node_name, state in event.items():
             final_state = state
-            logger.debug(f"节点 {node_name} 完成")
+            pass
 
     return final_state

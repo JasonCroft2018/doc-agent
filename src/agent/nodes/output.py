@@ -2,11 +2,9 @@
 结果整合节点：根据 intent 和检索结果，生成最终回答。
 """
 
-import logging
 from src.agent.state import AgentState
 from langchain_core.language_models import BaseLLM
 
-logger = logging.getLogger(__name__)
 
 
 def generate_answer(state: AgentState, llm: BaseLLM) -> AgentState:
@@ -51,7 +49,7 @@ def generate_answer(state: AgentState, llm: BaseLLM) -> AgentState:
         response = llm.invoke(prompt)
         state["answer"] = response.content if hasattr(response, "content") else str(response)
     except Exception as e:
-        logger.error(f"生成回答失败: {e}")
+    
         state["answer"] = "生成回答时出错，请重试。"
 
     # 记录来源

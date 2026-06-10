@@ -1,0 +1,93 @@
+{
+  "description": "DocAgent 评测测试用例集",
+  "version": "0.1.0",
+  "threshold_pass_rate": 0.8,
+  "test_cases": [
+    {
+      "id": "TC-001",
+      "category": "normal",
+      "query": "你好",
+      "expected_intent": "chat",
+      "expected_keywords": [
+        "你好",
+        "文档助手"
+      ],
+      "description": "问候场景"
+    },
+    {
+      "id": "TC-002",
+      "category": "normal",
+      "query": "什么是Transformer",
+      "expected_intent": "retrieve",
+      "expected_keywords": [
+        "没有找到",
+        "未找到"
+      ],
+      "description": "检索场景（空索引）"
+    },
+    {
+      "id": "TC-003",
+      "category": "normal",
+      "query": "对比A和B两份合同",
+      "expected_intent": "compare",
+      "expected_keywords": [],
+      "description": "对比场景"
+    },
+    {
+      "id": "TC-004",
+      "category": "normal",
+      "query": "检查一下这个合同的风险",
+      "expected_intent": "compliance",
+      "expected_keywords": [],
+      "description": "合规场景"
+    },
+    {
+      "id": "TC-005",
+      "category": "normal",
+      "query": "谢谢",
+      "expected_intent": "chat",
+      "expected_keywords": [],
+      "description": "礼貌用语"
+    },
+    {
+      "id": "TC-006",
+      "category": "boundary",
+      "query": "",
+      "expected_intent": "chat",
+      "expected_keywords": [],
+      "description": "空查询"
+    },
+    {
+      "id": "TC-007",
+      "category": "boundary",
+      "query": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected_intent": "retrieve",
+      "expected_keywords": [],
+      "description": "超长输入"
+    },
+    {
+      "id": "TC-008",
+      "category": "boundary",
+      "query": "!@#$%^&*()",
+      "expected_intent": "retrieve",
+      "expected_keywords": [],
+      "description": "特殊字符"
+    },
+    {
+      "id": "TC-009",
+      "category": "normal",
+      "query": "MCP 协议是什么？",
+      "expected_intent": "retrieve",
+      "expected_keywords": [],
+      "description": "技术问题"
+    },
+    {
+      "id": "TC-010",
+      "category": "error",
+      "query": "帮我写一首诗",
+      "expected_intent": "retrieve",
+      "expected_keywords": [],
+      "description": "超出范围请求"
+    }
+  ]
+}
