@@ -298,3 +298,197 @@ LLM 测试三层策略：
 > **版本**：v1.0 | **最后更新**：2026-06-10 | **作者**：Jason Croft
 > **基础项目**：DocAgent（企业文档智能助手）
 > **参考手册**：AGENT_SKILL.md / PM_SKILL.md / PJM_SKILL.md / TEST_SKILL.md / QA_SKILL.md
+
+---
+
+## 七、反向扩展 — 从文档倒推出 Agent 自动执行 SOP
+
+### 7.1 核心思路
+
+不是"人读文档 → 人做事"，而是 **"Agent 读文档 → Agent 自动执行"**。
+
+```
+传统方式：
+6 个 SKILL.md → 人阅读 → 人理解 → 人执行 → 人交付
+                      ↑ 瓶颈：人的时间、经验、精力
+
+反向扩展后：
+6 个 SKILL.md → Agent 阅读 → Agent 理解 → Agent 自动执行
+                      ↑ 每个节点可被 AI 调用
+```
+
+### 7.2 如何实现：将每个节点变成可调用的 Tool
+
+每个 SKILL.md 中的关键节点 → 封装为 Agent 可调用的 Tool/API：
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                  Agent 编排层                             │
+│  （一个"项目经理 Agent"调度多个"专业 Agent"）              │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
+│  │ PJM Agent│  │ PM Agent │  │ DEV Agent│  │ QA Agent │ │
+│  │ 读PJM_   │  │ 读PM_    │  │ 读AGENT_ │  │ 读TEST_  │ │
+│  │ SKILL.md │  │ SKILL.md │  │ SKILL.md │  │+QA_SKILL│ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘ │
+│       │              │              │              │      │
+│       ▼              ▼              ▼              ▼      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
+│  │ WBS 生成  │  │ 用户故事  │  │ 代码生成  │  │ 测试用例  │ │
+│  │ 风险登记  │  │ PRD 生成  │  │ 架构设计  │  │ 评测执行  │ │
+│  │ 验收检查  │  │ UAT 方案  │  │ 踩坑记录  │  │ 准出判断  │ │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘ │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 7.3 每个 Skill 的反向扩展方式
+
+#### AGENT_SKILL.md → DEV Agent
+
+| 当前（人读文档） | 反向扩展后（Agent 自动执行） |
+|:---------------|:--------------------------|
+| 人阅读 Phase 1（RAG 管道） | Agent 读取 Phase 1 → 自动选择切片策略 → 生成代码 |
+| 人选择技术方案 | Agent 读取架构决策 → 自动匹配已有项目的选型 |
+| 人写踩坑记录 | Agent 自动从 Git log + 错误日志提取踩坑 |
+| 人执行 24 个测试 | Agent 自动运行 pytest 并生成报告 |
+
+**封装为 Tool**：
+```
+/agent/skill/dev/phase1_rag    — 输入: 文档格式 → 输出: RAG 管道代码
+/agent/skill/dev/phase2_graph  — 输入: 流程定义 → 输出: LangGraph 代码
+/agent/skill/dev/gen_test      — 输入: 模块路径 → 输出: pytest 用例
+/agent/skill/dev/log_issue     — 输入: 错误信息 → 输出: 踩坑记录
+```
+
+#### PM_SKILL.md → PM Agent
+
+| 当前（人读文档） | 反向扩展后（Agent 自动执行） |
+|:---------------|:--------------------------|
+| 人写用户故事 | Agent 从对话提取 → 自动生成用户故事卡片 |
+| 人排优先级 | Agent 按 RICE 评分 → 自动排序 |
+| 人写 PRD | Agent 根据用户故事 → 自动生成结构化 PRD |
+| 人设计 UAT 方案 | Agent 根据验收标准 → 生成 UAT 用例 |
+
+**封装为 Tool**：
+```
+/agent/skill/pm/user_story    — 输入: 对话记录 → 输出: 用户故事
+/agent/skill/pm/priority      — 输入: 故事列表 → 输出: 排序后列表
+/agent/skill/pm/gen_prd       — 输入: 需求 → 输出: PRD 文档
+/agent/skill/pm/uat_case      — 输入: PRD → 输出: UAT 用例
+```
+
+#### PJM_SKILL.md → PJM Agent
+
+| 当前（人读文档） | 反向扩展后（Agent 自动执行） |
+|:---------------|:--------------------------|
+| 人做 WBS 拆解 | Agent 根据 PRD → 自动拆解为任务 |
+| 人写风险登记册 | Agent 根据踩坑记录 → 自动识别相似风险 |
+| 人做验收 | Agent 执行验收清单 → 生成验收报告 |
+
+**封装为 Tool**：
+```
+/agent/skill/pjm/wbs           — 输入: PRD → 输出: WBS 任务树
+/agent/skill/pjm/risk          — 输入: 项目背景 → 输出: 风险登记册
+/agent/skill/pjm/acceptance    — 输入: 项目状态 → 输出: 验收报告
+```
+
+#### TEST_SKILL.md + QA_SKILL.md → QA Agent
+
+| 当前（人读文档） | 反向扩展后（Agent 自动执行） |
+|:---------------|:--------------------------|
+| 人写测试用例 | Agent 根据 PRD → 自动生成 Given-When-Then 用例 |
+| 人做 LLM 评测 | Agent 自动运行 LLM-as-Judge |
+| 人判断准出 | Agent 检查通过率 → 输出通过/不通过 |
+
+**封装为 Tool**：
+```
+/agent/skill/qa/gen_cases      — 输入: PRD → 输出: 测试用例
+/agent/skill/qa/eval_llm       — 输入: 测试用例 → 输出: 评分报告
+/agent/skill/qa/gate_check     — 输入: 测试结果 → 输出: 准出判断
+```
+
+### 7.4 协作流程示例
+
+```
+当用户说"帮我做一个文档助手"时：
+
+Step 1: PM Agent 启动
+  读取 PM_SKILL.md → 问用户 5 个问题 →
+  输出用户故事 + 优先级矩阵
+
+Step 2: PJM Agent 启动
+  读取 PJM_SKILL.md → 根据用户故事 →
+  输出 WBS 任务树 + 风险登记册
+
+Step 3: DEV Agent 启动
+  读取 AGENT_SKILL.md → 按 Phase 1-6 →
+  生成代码（含测试用例）
+
+Step 4: QA Agent 启动
+  读取 TEST_SKILL.md + QA_SKILL.md →
+  生成测试报告 + 准出判断
+
+Step 5: PJM Agent 收尾
+  执行验收清单 → 生成发布报告
+```
+
+### 7.5 技术实现建议
+
+```yaml
+# mcp-servers.yaml — 将每个 Skill 注册为 MCP Server
+servers:
+  - name: pjm-agent
+    skill: PJM_SKILL.md
+    tools:
+      - generate_wbs
+      - assess_risk
+      - acceptance_check
+
+  - name: pm-agent
+    skill: PM_SKILL.md
+    tools:
+      - extract_user_stories
+      - prioritize_backlog
+      - generate_prd
+
+  - name: dev-agent
+    skill: AGENT_SKILL.md
+    tools:
+      - generate_rag_pipeline
+      - generate_agent_graph
+      - run_tests
+
+  - name: qa-agent
+    skill: [TEST_SKILL.md, QA_SKILL.md]
+    tools:
+      - generate_test_cases
+      - evaluate_llm
+      - check_gate
+```
+
+### 7.6 CMMI 落地对照
+
+```
+CMMI L3（标准化）→ 6 个 SKILL.md 是标准流程定义
+CMMI L4（量化）  → 每个 Tool 输出都有度量指标
+CMMI L5（优化）  → 每次执行后自动更新 SKILL.md（踩坑 → 改进）
+
+当前项目已达到：
+✅ L3 — 6 个文档定义了完整的标准流程
+✅ L4 部分 — 通过率门禁、Trace 可观测
+⏳ L5 — 尚未实现自动复盘和流程优化
+```
+
+### 7.7 一句话总结
+
+> **反向扩展 = 把 6 个 SKILL.md 里的每个节点，变成 Agent 可调用的 MCP Tool。**
+>
+> 人读文档是"指导"，Agent 读文档是"执行"。
+> 反过来，让 Agent 也能读这些文档、理解流程、自动干活，
+> 就实现了从"文档驱动人"到"文档驱动 Agent"的转变。
+
+---
+
+> **版本**：v1.1 | **最后更新**：2026-06-10
