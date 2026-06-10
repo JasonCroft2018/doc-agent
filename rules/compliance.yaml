@@ -1,0 +1,55 @@
+# ============================================================
+# DocAgent 合规规则库
+# 编辑此文件可自定义合规检查规则
+# ============================================================
+
+rules:
+  - id: "C001"
+    name: "违约金比例检查"
+    risk_level: "high"
+    description: "违约金超过合同金额 20% 属于高风险"
+    keywords: ["违约金", "违约", "penalty"]
+    pattern: null
+
+  - id: "C002"
+    name: "保密条款缺失"
+    risk_level: "high"
+    description: "合同缺少保密条款"
+    keywords: ["保密", "机密", "confidential"]
+    pattern: null
+    check_type: "missing"  # 如果文档中没有这些关键词，报风险
+
+  - id: "C003"
+    name: "付款周期过长"
+    risk_level: "medium"
+    description: "付款周期超过 90 天"
+    keywords: ["付款", "支付", "账期"]
+    pattern: "\\d{2,3}天"
+    threshold: 90
+
+  - id: "C004"
+    name: "自动续约条款"
+    risk_level: "medium"
+    description: "合同包含自动续约条款，需关注"
+    keywords: ["自动续约", "自动延期", "自动续签"]
+
+  - id: "C005"
+    name: "数据安全责任"
+    risk_level: "high"
+    description: "缺少数据安全与隐私保护条款"
+    keywords: ["数据安全", "隐私", "个人信息", "data protection"]
+    check_type: "missing"
+
+  - id: "C006"
+    name: "争议解决方式"
+    risk_level: "low"
+    description: "建议明确争议解决方式（仲裁/诉讼）"
+    keywords: ["仲裁", "诉讼", "争议", "管辖"]
+    check_type: "missing"
+
+  - id: "C007"
+    name: "不可抗力条款"
+    risk_level: "low"
+    description: "检查是否包含不可抗力条款"
+    keywords: ["不可抗力", "force majeure"]
+    check_type: "missing"

@@ -1,17 +1,22 @@
 """
 FastAPI 启动时加载模型和 Agent。
-使用 Ollama HTTP API 调用 bge-m3（不走 huggingface）。
+使用 FlagEmbedding 加载本地 PyTorch 格式的 bge-m3（~/.cache/huggingface/hub/）。
 """
 
 import logging
 import os
 import sys
-import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from src.config.settings import settings
 from src.rag.pipeline import RAGPipeline
+# 离线模式：不从 huggingface.co 下载，仅使用本地缓存
+import os
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+
+from FlagEmbedding import BGEM3FlagModel
 
 logger = logging.getLogger(__name__)
 
@@ -31,54 +36,20 @@ class AppComponents:
 components = AppComponents()
 
 
-class OllamaEmbedding:
-    """通过 Ollama HTTP API 调用 bge-m3 做 embedding，不走 huggingface"""
+class FlagEmbeddingModel:
+    """通过 FlagEmbedding 库直接加载 bge-m3，不走 Ollama"""
+
+    def __init__(self):
+        self.model = BGEM3FlagModel("BAAI/bge-m3", use_fp16=True)
 
     def encode(self, texts, max_length=512):
-        if isinstance(texts, str):
-            texts = [texts]
-        dense_vecs = []
-        for text in texts:
-            resp = requests.post(
-                f"{settings.OLLAMA_BASE_URL}/api/embeddings",
-                json={"model": settings.EMBEDDING_MODEL, "prompt": text},
-                timeout=30,
-            )
-            if resp.status_code == 200:
-                dense_vecs.append(resp.json()["embedding"])
-            else:
-                logger.warning(f"Ollama embedding 失败: {resp.status_code}")
-                dense_vecs.append([0.0] * 1024)
-        return {"dense_vecs": [v for v in dense_vecs]}
-
-
-# ===== FlagEmbedding 版本（需要本地已下载 BAAI/bge-m3 权重） =====
-# 取消注释下方代码，并注释上面的 OllamaEmbedding 即可切换
-#
-# from FlagEmbedding import BGEM3FlagModel
-#
-# class FlagEmbeddingModel:
-#     """通过 FlagEmbedding 库直接加载 bge-m3，不走 Ollama"""
-#
-#     def __init__(self):
-#         self.model = BGEM3FlagModel("BAAI/bge-m3", use_fp16=True)
-#
-#     def encode(self, texts, max_length=512):
-#         output = self.model.encode(texts, max_length=max_length)
-#         return {"dense_vecs": output["dense_vecs"].tolist()}
-
+        output = self.model.encode(texts, max_length=max_length)
+        return {"dense_vecs": output["dense_vecs"].tolist()}
 
 
 def load_embedding_model():
-    """
-    加载 Embedding 模型。
-    
-    当前使用：Ollama API 方式（调用本地 Ollama 中的 bge-m3）
-    如需切换为 FlagEmbedding（本地权重），将下方改为：
-        return FlagEmbeddingModel()
-    """
-    logger.info(f"使用 Ollama API 调用 embedding 模型: {settings.EMBEDDING_MODEL}")
-    return OllamaEmbedding()
+    logger.info("使用 FlagEmbedding 加载本地 bge-m3 权重（~/.cache/huggingface/hub/）")
+    return FlagEmbeddingModel()
 
 
 def load_llm():
@@ -106,7 +77,7 @@ async def startup_event():
     logger.info("DocAgent 启动中...")
     logger.info("=" * 50)
 
-    logger.info("[1/4] 加载 Embedding 模型（Ollama bge-m3）...")
+    logger.info("[1/4] 加载 Embedding 模型（FlagEmbedding bge-m3）...")
     components.embedding_model = load_embedding_model()
 
     logger.info("[2/4] 加载 RAG 管道...")

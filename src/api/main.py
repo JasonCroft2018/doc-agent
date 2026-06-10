@@ -86,6 +86,15 @@ async def health_check():
     )
 
 
+@app.get("/api/trace/latest")
+async def get_latest_trace():
+    """获取最近的 Trace 日志"""
+    from src.api.trace_store import get_latest_trace
+    from fastapi.responses import JSONResponse
+    lines = get_latest_trace()
+    return JSONResponse({"lines": lines, "total": len(lines)})
+
+
 @app.get("/api/stats", response_model=StatsResponse)
 async def get_stats():
     """索引统计"""

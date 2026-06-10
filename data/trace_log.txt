@@ -1,0 +1,43 @@
+🔍 [Trace] intent |   ├─ intent=chat (confidence=1.0)
+🔍 [Trace] route |   ├─ intent=chat → route=output
+🔍 [Trace] output |   ├─ SPAN | intent=chat
+🔍 [Trace] output |   └─ END | 你好！我是文档助手，可以帮你检索文档、对比合同、检查合规风险。请问有什么可以帮你？
+🔍 [Trace] doc-agent | 🟢 END
+🔍 [Trace] intent |   ├─ intent=retrieve (confidence=1.0)
+🔍 [Trace] route |   ├─ intent=retrieve → route=retrieval
+🔍 [Trace] retrieval |   ├─ SPAN | query=什么是Transformer
+🔍 [Trace] retrieval |   └─ END | chunks=0
+🔍 [Trace] output |   ├─ SPAN | intent=retrieve
+🔍 [Trace] output |   └─ END | 没有找到相关文档内容。请换个关键词试试。
+🔍 [Trace] doc-agent | 🟢 END
+🔍 [Trace] intent |   ├─ intent=retrieve (confidence=1.0)
+🔍 [Trace] route |   ├─ intent=retrieve → route=retrieval
+🔍 [Trace] retrieval |   ├─ SPAN | query=中国燃气
+🔍 [Trace] retrieval |   └─ END | chunks=5
+🔍 [Trace] output |   ├─ SPAN | intent=retrieve
+🔍 [Trace] output |   └─ END | 根据您提供的文档内容，无法直接回答关于“中国燃气”的具体问题。这些文档主要包含SQL查询语句和数据统计信息，并未提供与“中国燃气”相关的企业或项目的具体信息。因
+🔍 [Trace] doc-agent | 🟢 END
+🔍 [Trace] intent |   ├─ intent=retrieve (confidence=1.0)
+🔍 [Trace] security |   ├─ SPAN | checking...
+🔍 [Trace] security |   └─ END | safe
+🔍 [Trace] route |   ├─ intent=retrieve → route=retrieval
+🔍 [Trace] retrieval |   ├─ SPAN | query=什么是Transformer
+🔍 [Trace] retrieval |   └─ END | chunks=5
+🔍 [Trace] output |   ├─ SPAN | intent=retrieve
+🔍 [Trace] output |   └─ END | Transformer是一种在自然语言处理领域非常成功的模型架构，它由Google的研究人员引入。与传统的循环神经网络（RNN）不同，Transformer使用
+🔍 [Trace] doc-agent | 🟢 END
+🔍 [Trace] intent |   ├─ intent=retrieve (confidence=1.0)
+🔍 [Trace] security |   ├─ SPAN | checking...
+🔍 [Trace] security |   └─ END | safe
+🔍 [Trace] route |   ├─ intent=retrieve → route=retrieval
+🔍 [Trace] retrieval |   ├─ SPAN | query=什么是Transformer
+🔍 [Trace] retrieval |   └─ END | chunks=5
+🔍 [Trace] output |   ├─ SPAN | intent=retrieve
+🔍 [Trace] output |   └─ END | Transformer是一种深度学习架构，主要用于自然语言处理（NLP）任务。它在许多机器学习和深度学习模型中被用作编码器或解码器的一部分。Transforme
+🔍 [Trace] doc-agent | 🟢 END
+🔍 [Trace] intent |   ├─ intent=chat (confidence=1.0)
+🔍 [Trace] security |   ├─ SPAN | checking...
+🔍 [Trace] security |   └─ END | injection detected
+🔍 [Trace] output |   ├─ SPAN | intent=rejected
+🔍 [Trace] output |   └─ END | 没有找到相关文档内容。请换个关键词试试。
+🔍 [Trace] doc-agent | 🟢 END

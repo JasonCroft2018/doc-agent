@@ -32,6 +32,13 @@ class Settings:
     TOP_K_RERANK: int = 5       # 重排后取 5 条
 
     # 安全
+    # Prompt Injection 检测开关
+    ENABLE_INJECTION_DETECTION: bool = True
+    # 输出脱敏开关
+    ENABLE_SANITIZE_OUTPUT: bool = True
+    # 合规检查开关
+    ENABLE_COMPLIANCE_CHECK: bool = True
+
     SENSITIVE_PATTERNS: list = [
         r"\d{18}[\dXx]",       # 身份证号
         r"1[3-9]\d{9}",        # 手机号

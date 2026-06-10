@@ -1,3 +1,4 @@
+import logging
 """
 LangGraph 状态图定义。
 
@@ -11,6 +12,7 @@ MCP 工具：
 """
 
 from typing import Literal
+from src.api.trace_store import write_trace
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -31,6 +33,7 @@ def build_agent(
     llm: BaseLLM,
     mcp_tools = None,
 ) -> StateGraph:
+    def _p(msg): print(msg); write_trace(msg)
     """
     构建文档助手 Agent 的状态图。
 
@@ -44,31 +47,67 @@ def build_agent(
     """
 
     def intent_node(state: AgentState) -> AgentState:
-        return run_intent_detection(state, llm)
+        print("\n🔍 [Trace] doc-agent | 🟢 START | session=" + state.get("thread_id", "default"))
+        print("   Input: " + state["query"][:100])
+        result = run_intent_detection(state, llm)
+        _p("🔍 [Trace] intent |   ├─ intent=" + str(result.get("intent","?")) + " (confidence=" + str(round(result.get("intent_confidence",0),2)) + ")")
+        return result
+
+    def security_node(state: AgentState) -> AgentState:
+        _p("🔍 [Trace] security |   ├─ SPAN | checking...")
+        from src.agent.nodes.security import run_security_check, sanitize_output
+        from src.config.settings import settings
+        
+        # 检测输入（只在 retrieve/compliance 时检查）
+        query = state.get("query", "")
+        if settings.ENABLE_INJECTION_DETECTION and query:
+            safe, _, warning = run_security_check(query)
+            if not safe:
+                state["answer"] = warning
+                state["intent"] = "rejected"
+                _p("🔍 [Trace] security |   └─ END | injection detected")
+                return state
+        
+        # 后续 output 节点会做输出脱敏
+        _p("🔍 [Trace] security |   └─ END | safe")
+        return state
 
     def retrieval_node(state: AgentState) -> AgentState:
-        # 如果有 MCP 工具，走 MCP 路径；否则走直接调用路径
+        _p("🔍 [Trace] retrieval |   ├─ SPAN | query=" + state["query"][:80])
         if mcp_tools:
-            return run_retrieval_with_mcp(state, pipeline, llm, mcp_tools)
-        return run_retrieval(state, pipeline, llm)
+            result = run_retrieval_with_mcp(state, pipeline, llm, mcp_tools)
+        else:
+            result = run_retrieval(state, pipeline, llm)
+        _p("🔍 [Trace] retrieval |   └─ END | chunks=" + str(result.get("retrieved_count",0)))
+        return result
 
     def output_node(state: AgentState) -> AgentState:
-        return generate_answer(state, llm)
+        result = generate_answer(state, llm)
+        answer_preview = result.get("answer", "")[:80]
+        _p("🔍 [Trace] output |   ├─ SPAN | intent=" + str(result.get("intent","?")))
+        _p("🔍 [Trace] output |   └─ END | " + answer_preview)
+        _p("🔍 [Trace] doc-agent | 🟢 END")
+        return result
 
     def route_after_intent(state: AgentState) -> Literal["retrieval", "output"]:
-        if state["intent"] in ("retrieve", "compare", "compliance"):
-            return "retrieval"
-        return "output"
+        intent = state["intent"]
+        if intent == "rejected":
+            return "output"
+        route = "retrieval" if intent in ("retrieve", "compare", "compliance") else "output"
+        _p("🔍 [Trace] route |   ├─ intent=" + intent + " → route=" + route)
+        return route
 
     builder = StateGraph(AgentState)
 
     builder.add_node("intent", intent_node)
+    builder.add_node("security", security_node)
     builder.add_node("retrieval", retrieval_node)
     builder.add_node("output", output_node)
 
     builder.add_edge(START, "intent")
+    builder.add_edge("intent", "security")
     builder.add_conditional_edges(
-        "intent",
+        "security",
         route_after_intent,
         {"retrieval": "retrieval", "output": "output"},
     )

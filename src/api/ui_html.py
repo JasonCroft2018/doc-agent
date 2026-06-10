@@ -96,6 +96,59 @@ header h1{font-size:18px;color:#38bdf8}
   btn.onclick=send; inp.onkeydown=function(e){if(e.key=='Enter')send()};
   window.ask=function(q){inp.value=q;send()};
 })();
+
+  // Trace 显示
+  var traceContainer = document.getElementById('trace-container');
+  var traceCount = document.getElementById('trace-count');
+  
+  function loadTrace() {
+    var x = new XMLHttpRequest();
+    x.open('GET', '/api/trace/latest', true);
+    x.onload = function() {
+      if (x.status === 200) {
+        var data = JSON.parse(x.responseText);
+        if (data.lines && data.lines.length > 0) {
+          traceContainer.innerHTML = data.lines.map(function(l) {
+            var color = '#a7f3d0';
+            if (l.indexOf('ERROR') > -1) color = '#fca5a5';
+            else if (l.indexOf('END') > -1) color = '#64748b';
+            return '<div style="color:' + color + '">' + escHtml(l) + '</div>';
+          }).join('');
+          traceCount.textContent = data.lines.length + ' 条';
+        }
+      }
+    };
+    x.send();
+  }
+  
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+  
+  // 在 send 成功后刷新 trace
+  var origSend = send;
+  send = function() {
+    origSend();
+    setTimeout(loadTrace, 2000);
+  };
+  
+  // 页面加载时也拉一次
+  setTimeout(loadTrace, 1000);
+
 </script>
+
+  <!-- Trace 日志 -->
+  <div style="max-width:800px;margin:20px auto;background:#1e293b;border-radius:8px;padding:16px;border:1px solid #334155;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="color:#94a3b8;font-size:13px;font-weight:bold;">🔍 Trace 日志</span>
+      <span id="trace-count" style="color:#64748b;font-size:11px;">0 条</span>
+    </div>
+    <div id="trace-container" style="font-family:monospace;font-size:12px;color:#a7f3d0;max-height:200px;overflow-y:auto;background:#0f172a;border-radius:4px;padding:8px;line-height:1.6;">
+      <div style="color:#64748b;">等待请求...</div>
+    </div>
+  </div>
+
 </body>
 </html>"""
