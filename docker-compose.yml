@@ -1,0 +1,69 @@
+# ============================================================
+# DocAgent docker-compose 编排
+#
+# 启动：docker-compose up -d
+# 停止：docker-compose down
+# 日志：docker-compose logs -f
+# ============================================================
+
+services:
+  # ---- Agent 服务 ----
+  doc-agent:
+    build: .
+    container_name: doc-agent
+    ports:
+      - "${API_PORT:-8765}:8765"
+    environment:
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-r1:14b}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-bge-m3}
+      - CHROMA_DB_PATH=/app/data/chroma_db
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://langfuse:3000}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+    volumes:
+      - ./data/chroma_db:/app/data/chroma_db
+      - ./data/raw:/app/data/raw
+    restart: unless-stopped
+    networks:
+      - docagent-net
+
+  # ---- LangFuse 可观测性（可选） ----
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: doc-agent-langfuse
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      - NEXTAUTH_SECRET=change-me-in-production
+      - NEXTAUTH_URL=http://localhost:3000
+    depends_on:
+      - langfuse-db
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    networks:
+      - docagent-net
+
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: doc-agent-langfuse-db
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=langfuse
+      - POSTGRES_DB=langfuse
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    networks:
+      - docagent-net
+
+volumes:
+  langfuse-db-data:
+
+networks:
+  docagent-net:
+    driver: bridge

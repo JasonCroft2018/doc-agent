@@ -1,0 +1,41 @@
+# ============================================================
+# DocAgent 依赖
+# ============================================================
+# Agent 框架
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-community>=0.3.0
+
+# LLM 调用
+langchain-ollama>=0.2.0
+
+# RAG 管道
+chromadb>=0.5.0
+langchain-chroma>=0.2.0
+sentence-transformers>=3.0.0
+FlagEmbedding>=1.4.0
+
+# 文档解析
+unstructured>=0.15.0
+pypdf>=5.0.0
+python-docx>=1.1.0
+
+# API 服务
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pydantic>=2.9.0
+
+# MCP
+mcp>=1.0.0
+
+# 可观测性
+langfuse>=2.55.0
+
+# 工具
+python-dotenv>=1.0.0
+httpx>=0.28.0
+
+# 测试
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+rank_bm25>=0.2.2
