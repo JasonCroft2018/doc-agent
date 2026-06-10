@@ -131,3 +131,5 @@ bash tests/run_test.sh
 ---
 
 > **作者**: Jason Croft | **License**: MIT
+
+[![GitHub](https://img.shields.io/badge/GitHub-JasonCroft2018%2Fdoc--agent-blue)](https://github.com/JasonCroft2018/doc-agent)
